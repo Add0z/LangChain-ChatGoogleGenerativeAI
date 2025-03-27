@@ -22,22 +22,39 @@ class ChatRenderer:
 
     @staticmethod
     def _render_static(role: str, text: str):
-        """Render message without typing effect."""
-        st.markdown(f"""
-            <div style="
-                display: block;
-                background-color: #e6ffe6; 
-                border-radius: 10px; 
-                padding: 10px; 
-                margin: 5px 0;
-                color: black;
-                text-align: right;
-                width: fit-content;
-                margin-left: auto;
-            ">
-                <strong>{role}:</strong> {text}
-            </div>
-            """, unsafe_allow_html=True)
+        if role == "User":
+            """Render message without typing effect."""
+            st.markdown(f"""
+                <div style="
+                    display: block;
+                    background-color: #e6ffe6; 
+                    border-radius: 10px; 
+                    padding: 10px; 
+                    margin: 5px 0;
+                    color: black;
+                    text-align: right;
+                    width: fit-content;
+                    margin-left: auto;
+                ">
+                    <strong>{role}:</strong> {text}
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <div style="
+                    text-align: left; 
+                    background-color: #e6f2ff; 
+                    border-radius: 10px; 
+                    padding: 10px; 
+                    margin: 5px 0;
+                    max-width: 80%;
+                    color: black;
+                    width: fit-content;
+                    soft-wrap: break-word;
+                ">
+                    <strong>{role}:</strong> {text}
+                </div>
+                """, unsafe_allow_html=True)
 
     @staticmethod
     def _render_with_typing(role: str, text: str, typing_speed: float = 0.015):
