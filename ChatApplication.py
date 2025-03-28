@@ -34,8 +34,6 @@ class ChatApplication:
     def process_user_input(self, input_text):
         """Process and handle user input."""
         try:
-            print(input_text)
-            print(st.session_state)
             clean_input = self.cleaner.clean_input(input_text)
             # Add user message to chat history
             self.chat_manager.add_message("User", input_text) # preserver the original input for display
@@ -46,10 +44,15 @@ class ChatApplication:
 
             # Get AI response
             if not docs:
+                st.toast("Your questions will be answered using the internet.",icon="🛜")
                 # Use direct Gemini response for general questions
                 response = self.gemini_helper.get_gemini_response(question=clean_input,
                                                                   chat_history=self.chat_manager.get_chat_history())
+                # Add AI message to chat history
+                self.chat_manager.add_message("🛜AI", response)
+                ChatRenderer.render_message("🛜AI", response, True)
             else:
+                st.toast("Your questions will be answered using the documents.",icon="📂")
                 # Create the conversational chain
                 chain = self.gemini_helper.create_rag_chain()
                 response = chain.invoke({
@@ -57,10 +60,11 @@ class ChatApplication:
                     "question": clean_input,
                     "chat_history": self.chat_manager.get_chat_history()
                 })
+                # Add AI message to chat history
+                self.chat_manager.add_message("📂AI", response)
+                ChatRenderer.render_message("📂AI", response, True)
 
-            # Add AI message to chat history
-            self.chat_manager.add_message("AI", response)
-            ChatRenderer.render_message("AI", response, True)
+
 
         except Exception as e:
             st.error(f"An error occurred: {e}")
