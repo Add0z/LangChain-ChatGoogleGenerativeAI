@@ -8,3 +8,4 @@ faiss-cpu
 protobuf~=5.29.4
 langchain-community
 nltk
+wikipedia

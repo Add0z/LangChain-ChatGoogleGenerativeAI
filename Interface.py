@@ -92,6 +92,7 @@ class Interface:
                 finally:
                     # Always reset processing state
                     st.session_state.processing = False
+                    st.session_state.hasNoPdf = False
                     st.rerun()
 
             # Check for success message after rerun

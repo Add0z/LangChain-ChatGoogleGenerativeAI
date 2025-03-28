@@ -21,7 +21,7 @@ class GeminiHelper:
 
         Args:
             model_name (str, optional): Name of the Gemini model to use.
-            Defaults to 'gemini-pro'.
+            Defaults to 'gemini-2.0-flash'.
         """
         # Use ChatGoogleGenerativeAI wrapper instead of direct GenerativeModel
         self.model = ChatGoogleGenerativeAI(
@@ -37,22 +37,24 @@ class GeminiHelper:
         Returns:
             A LangChain RAG chain for question-answering
         """
-        # Define the prompt template
+        # Define the prompt template with clear instructions on using context
         prompt_template = ChatPromptTemplate.from_template(
-            """
-               Answer the following questions as detailed as possible from the provided context and chat_history,
-                make sure to provide the answer in the same language as the question.
-                make sure to use the same language as the question.
-                make sure to provide the correct answer.
-                if you don't know the answer, just say that you don't know, don't try to make up an answer.
-                if you need to use the context and chat_history, use it to answer the question.
-                if you need more context, ask for it.
-                make sure to explicitly mention when your answer is based on the context and chat_history or based on your own knowledge.
-                Chat History: \n {chat_history} \n
-                Context: \n {context} \n
-                Question: \n {question} \n
+            """You are an AI assistant that provides precise and accurate answers. 
+               Follow these guidelines carefully:
+               1. If the context provides relevant information, use it to form your answer.
+               2. Always be clear about the source of your information:
+                  - If using context, mention "Based on the provided documents:"
+                  - If using general knowledge, mention "Based on my general knowledge:"
+               3. If the context does not contain sufficient information to answer the question, 
+                  clearly state this and offer to help find more information.
+               4. Answer in the same language as the question.
+               5. Be concise but comprehensive.
 
-                Answer:
+               Chat History: \n {chat_history} \n
+               Context: \n {context} \n
+               Question: \n {question} \n
+
+               Answer:
            """)
 
         # Create the RAG chain
@@ -91,11 +93,38 @@ class GeminiHelper:
             # Create a generative model
             model = genai.GenerativeModel('gemini-2.0-flash')
 
-            # If context is provided, prepend it to the question
+            # Construct a comprehensive prompt that includes context, chat history, and question
+            full_query_parts = []
+
+            # Add context if provided
             if context:
-                full_query = f"Context: {context}\n\nQuestion: {question}"
-            else:
-                full_query = question
+                full_query_parts.append(f"Context: {context}")
+
+            # Add chat history if provided and it's a list of dictionaries
+            if chat_history:
+                # Safely handle different chat history formats
+                if isinstance(chat_history, list):
+                    try:
+                        # Try to extract text from dictionary-style chat history
+                        history_str = "\n".join([
+                            f"{msg.get('role', 'Unknown')}: {msg.get('parts', [msg.get('content', 'No message')])}"
+                            for msg in chat_history[-3:]
+                        ])
+                    except Exception:
+                        # Fallback to string representation if dictionary access fails
+                        history_str = "\n".join(str(msg) for msg in chat_history[-3:])
+
+                    full_query_parts.append(f"Previous Conversation:\n{history_str}")
+                elif isinstance(chat_history, str):
+                    # If chat_history is already a string
+                    full_query_parts.append(f"Previous Conversation:\n{chat_history}")
+
+            # Add the main question
+            full_query_parts.append(f"Question: {question}")
+            full_query_parts.append("Please provide a comprehensive answer.")
+
+            # Join all parts
+            full_query = "\n\n".join(full_query_parts)
 
             # Generate the response
             response = model.generate_content(full_query)
