@@ -1,6 +1,7 @@
 import streamlit as st
 from ChatApplication import ChatApplication
 from ChatHistoryManager import ChatHistoryManager
+from InputCleaner import InputCleaner
 
 from PdfVectorHelper import PdfVectorHelper
 
@@ -11,20 +12,24 @@ class Interface:
         self.app = ChatApplication()
         self.chat_manager = ChatHistoryManager()
         self.pdf_vector_helper = PdfVectorHelper()
+        self.cleaner = InputCleaner()
         self._initialize_page_config()
         self._initialize_session_state()
 
-    def _initialize_page_config(self):
+    @staticmethod
+    def _initialize_page_config():
         """Set up page configuration and header."""
         st.set_page_config(page_title="LangChain Chat with Google Generative AI", layout="wide")
         st.header("LangChain Chat with Google Generative AI")
 
-    def _initialize_session_state(self):
+    @staticmethod
+    def _initialize_session_state():
         """Initialize and manage session state variables."""
         default_states = {
             'input_holder': '',
             'clicked': False,
-            'input': ''
+            'input': '',
+            'hasNoPdf': False
         }
         for key, default_value in default_states.items():
             if key not in st.session_state:
@@ -33,8 +38,7 @@ class Interface:
     def run(self):
         """Main application runner."""
         # Clear chat history button
-        self.app._render_clear_chat_button()
-
+        self.app.render_clear_chat_button()
 
         # Response and input containers
         with st.container():
@@ -43,13 +47,13 @@ class Interface:
                 # Process input if available
                 input_text = st.session_state['input_holder']
                 if input_text:
-                    self.app._process_user_input(input_text)
+                    self.app.process_user_input(input_text)
                     st.session_state.input_holder = ''
                 else:
                     self.chat_manager.render_chat_history()
 
                 # Render input interface
-                self.app._create_input_interface()
+                self.app.create_input_interface()
 
         with st.sidebar:
             st.title("Menu:")

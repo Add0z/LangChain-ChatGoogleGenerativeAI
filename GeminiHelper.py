@@ -1,14 +1,11 @@
 import os
 from dotenv import load_dotenv
 
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
 import google.generativeai as genai
-import os
-
-from langchain.vectorstores import FAISS
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.chains.question_answering import load_qa_chain
-from langchain.prompts import PromptTemplate
 
 # Load environment variables
 load_dotenv()
@@ -18,18 +15,31 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 
 class GeminiHelper:
-    def __init__(self, model=None):
-        self.model = model or ChatGoogleGenerativeAI(model='gemini-2.0-flash')
+    def __init__(self, model_name='gemini-2.0-flash'):
+        """
+        Initialize the GeminiHelper with a specific model.
+
+        Args:
+            model_name (str, optional): Name of the Gemini model to use.
+            Defaults to 'gemini-pro'.
+        """
+        # Use ChatGoogleGenerativeAI wrapper instead of direct GenerativeModel
+        self.model = ChatGoogleGenerativeAI(
+            model=model_name,
+            convert_system_message_to_human=True
+        )
         self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
 
-    def get_conversational_chain(self):
+    def create_rag_chain(self):
         """
-        Create a conversational chain with a predefined prompt template.
+        Create a modern Retrieval-Augmented Generation (RAG) chain.
 
         Returns:
-            A LangChain question-answering chain
+            A LangChain RAG chain for question-answering
         """
-        prompt_template = """
+        # Define the prompt template
+        prompt_template = ChatPromptTemplate.from_template(
+            """
                Answer the following questions as detailed as possible from the provided context and chat_history,
                 make sure to provide the answer in the same language as the question.
                 make sure to use the same language as the question.
@@ -43,29 +53,53 @@ class GeminiHelper:
                 Question: \n {question} \n
 
                 Answer:
-           """
+           """)
 
-        prompt = PromptTemplate(
-            template=prompt_template,
-            input_variables=["context", "question", "chat_history"]
+        # Create the RAG chain
+        rag_chain = (
+                RunnablePassthrough.assign(
+                    input_documents=lambda x: x.get("context", []),
+                    question=lambda x: x.get("question", ""),
+                    chat_history=lambda x: x.get("chat_history", [])
+                )
+                | prompt_template
+                | self.model
+                | StrOutputParser()
         )
 
-        chain = load_qa_chain(self.model, chain_type="stuff", prompt=prompt)
-        return chain
+        return rag_chain
 
-    def get_gemini_response(self, question):
+    def get_gemini_response(self, question, context=None, chat_history=None):
         """
-        Generate a response from the Gemini AI model.
+        Generate a response using Gemini's full knowledge base.
 
         Args:
-            question (str): The input question or prompt.
+            question (str): The input question
+            context (str, optional): Additional context to supplement the answer
+            chat_history (list, optional): Previous conversation history
 
         Returns:
-            str: The generated response text, or error message if generation fails.
+            str: The generated response text
         """
         try:
-            # Send message and get the response
-            response = self.model.send_message(question)
+            # Import genai directly to ensure we have the correct module
+            import google.generativeai as genai
+
+            # Configure the API key again to ensure it's set
+            genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+
+            # Create a generative model
+            model = genai.GenerativeModel('gemini-2.0-flash')
+
+            # If context is provided, prepend it to the question
+            if context:
+                full_query = f"Context: {context}\n\nQuestion: {question}"
+            else:
+                full_query = question
+
+            # Generate the response
+            response = model.generate_content(full_query)
+
             return response.text
         except Exception as e:
             print(f"An error occurred: {e}")

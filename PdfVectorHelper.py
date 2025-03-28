@@ -6,7 +6,7 @@ import google.generativeai as genai
 import os
 import shutil
 
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
@@ -47,7 +47,7 @@ class PdfVectorHelper:
             # Check if the FAISS index exists
             if not os.path.exists("faiss_index"):
                 # If no index exists, return an empty list or raise a custom exception
-                st.warning("No PDF documents have been uploaded and processed yet.")
+                st.toast("No PDF documents have been uploaded and processed yet.",icon="🚨")
                 return []
 
             # If index exists, proceed with similarity search
@@ -67,19 +67,15 @@ class PdfVectorHelper:
         """
         try:
             # Extract text from PDFs
-            print(1)
             raw_text = self.get_pdf_text(pdf_docs)
 
             # Split text into chunks
-            print(2)
             text_chunks = self.get_text_chunks(raw_text)
 
             # Create and save vector store
-            print(3)
             self.get_vector_store(text_chunks)
 
             # Optional: Add more detailed logging or feedback
-            print(4)
             st.success(f"Processed {len(pdf_docs)} PDF(s) successfully")
 
         except Exception as e:
