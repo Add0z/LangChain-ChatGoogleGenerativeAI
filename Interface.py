@@ -29,7 +29,7 @@ class Interface:
             'input_holder': '',
             'clicked': False,
             'input': '',
-            'hasNoPdf': False
+            'hasNoPdf': True
         }
         for key, default_value in default_states.items():
             if key not in st.session_state:

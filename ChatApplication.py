@@ -49,10 +49,10 @@ class ChatApplication:
                 response = self.gemini_helper.get_gemini_response(question=clean_input,
                                                                   chat_history=self.chat_manager.get_chat_history())
                 # Add AI message to chat history
-                self.chat_manager.add_message("🛜AI", response)
-                ChatRenderer.render_message("🛜AI", response, True)
+                self.chat_manager.add_message(self.get_AI_emoji(), response)
+                ChatRenderer.render_message(self.get_AI_emoji(), response, True)
             else:
-                st.toast("Your questions will be answered using the documents.",icon="📂")
+                st.toast("Your questions will be answered based on the PDFs.",icon="📂")
                 # Create the conversational chain
                 chain = self.gemini_helper.create_rag_chain()
                 response = chain.invoke({
@@ -61,8 +61,8 @@ class ChatApplication:
                     "chat_history": self.chat_manager.get_chat_history()
                 })
                 # Add AI message to chat history
-                self.chat_manager.add_message("📂AI", response)
-                ChatRenderer.render_message("📂AI", response, True)
+                self.chat_manager.add_message(self.get_AI_emoji(), response)
+                ChatRenderer.render_message(self.get_AI_emoji(), response, True)
 
 
 
@@ -79,6 +79,15 @@ class ChatApplication:
             key="input",
             on_change=self._handle_input_submission
         )
+        col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
+
+        with col1: st.toggle("🛜 Use internet", key="internet_toggle",value=st.session_state.hasNoPdf,
+                             disabled=st.session_state.hasNoPdf)
+        with col2: st.toggle("📃 Use PDFs", key="pdfs_toggle",value=not st.session_state.hasNoPdf,
+                             disabled=st.session_state.hasNoPdf)
+        with col3: st.toggle("🌐 Use Wikipedia", key="wikipedia_toggle")
+
+        print(st.session_state)
 
     def _handle_input_submission(self):
         """Handle input submission for both ENTER and Submit button."""
@@ -86,3 +95,11 @@ class ChatApplication:
             st.session_state.input_holder = st.session_state['input']
             st.session_state['input'] = ''
             st.session_state.clicked = True
+
+    def get_AI_emoji(self):
+        if st.session_state.hasNoPdf:
+            return "🛜AI"
+        elif st.session_state.wikipedia_toggle:
+            return "🌐AI"
+        else:
+            return "📂AI"
