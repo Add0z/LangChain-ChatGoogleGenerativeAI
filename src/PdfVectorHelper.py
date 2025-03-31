@@ -28,7 +28,7 @@ class PdfVectorHelper:
     def get_text_chunks(self, pdf_text):
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
-            chunk_overlap=200,
+            chunk_overlap=300,
             length_function=len,
         )
         chunks = text_splitter.split_text(pdf_text)

@@ -1,9 +1,9 @@
 import streamlit as st
-from ChatApplication import ChatApplication
-from ChatHistoryManager import ChatHistoryManager
-from InputCleaner import InputCleaner
+from src.ChatApplication import ChatApplication
+from src.ChatHistoryManager import ChatHistoryManager
+from src.InputCleaner import InputCleaner
 
-from PdfVectorHelper import PdfVectorHelper
+from src.PdfVectorHelper import PdfVectorHelper
 
 
 class Interface:

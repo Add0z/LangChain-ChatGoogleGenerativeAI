@@ -57,7 +57,7 @@ class ChatRenderer:
                 """, unsafe_allow_html=True)
 
     @staticmethod
-    def _render_with_typing(role: str, text: str, typing_speed: float = 0.015):
+    def _render_with_typing(role: str, text: str, typing_speed: float = 0.005):
         """
         Render message with typing simulation.
 

@@ -1,11 +1,11 @@
 import streamlit as st
 
-from ChatHistoryManager import ChatHistoryManager
-from ChatRenderer import ChatRenderer
-from GeminiHelper import GeminiHelper
-from InputCleaner import InputCleaner
-from PdfVectorHelper import PdfVectorHelper
-from WikiHelper import WikiHelper
+from src.ChatHistoryManager import ChatHistoryManager
+from src.ChatRenderer import ChatRenderer
+from src.GeminiHelper import GeminiHelper
+from src.InputCleaner import InputCleaner
+from src.PdfVectorHelper import PdfVectorHelper
+from src.WikiHelper import WikiHelper
 
 
 class ChatApplication:
@@ -127,7 +127,6 @@ class ChatApplication:
         with col3:
             st.toggle("🌐 Use Wikipedia(beta)", key="wikipedia_toggle")
 
-        print(st.session_state)
 
     @staticmethod
     def _handle_input_submission():
