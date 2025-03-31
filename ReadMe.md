@@ -23,6 +23,9 @@ O projeto é estruturado com os seguintes componentes principais:
 - `PdfVectorHelper.py`: Processamento de PDFs e criação de índices vetoriais
 - `WikiHelper.py`: Busca e recuperação de informações da Wikipedia
 - `InputCleaner.py`: Limpeza e processamento de entrada do usuário
+- `WebVectorHelper.py`: Processamento de conteúdo da web e criação de índices vetoriais
+- `PdfSideBar.py`: Exibição da seção de PDFs
+- `WebSideBar.py`: Exibição da seção de Web
 
 ## Requisitos
 
@@ -70,6 +73,7 @@ O aplicativo será aberto em seu navegador padrão (geralmente http://localhost:
    - Use os botões toggle para escolher entre:
      - 🛜 Use internet: Responde usando conhecimento geral da internet
      - 📃 Use PDFs: Responde baseado nos PDFs carregados
+     - 📄 Use Web: Reponde baseado nos Links carregados
      - 🌐 Use Wikipedia(beta): Responde baseado em consultas à Wikipedia
 
 3. **Interação com o Chat**:
