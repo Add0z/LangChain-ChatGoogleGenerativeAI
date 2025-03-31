@@ -16,8 +16,10 @@ class PdfVectorHelper:
     def __init__(self):
         # Try using the latest available embedding model
         self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        self.vector_store_path = "pdf_faiss_index"
 
-    def get_pdf_text(self, pdf_docs):
+    @staticmethod
+    def get_pdf_text(pdf_docs):
         pdf_text = ""
         for pdf in pdf_docs:
             pdf_reader = PdfReader(pdf)
@@ -25,7 +27,8 @@ class PdfVectorHelper:
                 pdf_text += page.extract_text()
         return pdf_text
 
-    def get_text_chunks(self, pdf_text):
+    @staticmethod
+    def get_text_chunks(pdf_text):
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
             chunk_overlap=300,
@@ -39,19 +42,19 @@ class PdfVectorHelper:
             vector_store = FAISS.from_texts(chunks, self.embeddings, document_id=pdf_Id)
         else:
             vector_store = FAISS.from_texts(chunks, self.embeddings)
-        vector_store.save_local("faiss_index")
+        vector_store.save_local(self.vector_store_path)
         return vector_store
 
     def get_relevant_documents(self, question):
         try:
             # Check if the FAISS index exists
-            if not os.path.exists("faiss_index"):
+            if not os.path.exists(self.vector_store_path):
                 # If no index exists, return an empty list or raise a custom exception
                 st.toast("No PDF documents have been uploaded and processed yet.",icon="🚨")
                 return []
 
             # If index exists, proceed with similarity search
-            new_db = FAISS.load_local("faiss_index", self.embeddings, allow_dangerous_deserialization=True)
+            new_db = FAISS.load_local(self.vector_store_path, self.embeddings, allow_dangerous_deserialization=True)
             docs = new_db.similarity_search(question)
             return docs
         except Exception as e:
@@ -87,9 +90,11 @@ class PdfVectorHelper:
         """
         try:
             # Remove the local FAISS index file if it exists
-            st.session_state.pdf_uploads = []
-            if os.path.exists("faiss_index"):
-                shutil.rmtree("faiss_index")
+            if 'pdf_uploads' in st.session_state:
+                st.session_state.pdf_uploads = []
+
+            if os.path.exists(self.vector_store_path):
+                shutil.rmtree(self.vector_store_path)
                 if message:
                     st.success("PDF documents and vector store have been cleared.")
         except Exception as e:

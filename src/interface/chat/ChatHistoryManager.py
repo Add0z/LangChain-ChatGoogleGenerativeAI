@@ -1,6 +1,6 @@
 import streamlit as st
 
-from src.ChatRenderer import ChatRenderer
+from src.interface.chat.ChatRenderer import ChatRenderer
 
 class ChatHistoryManager:
     def __init__(self, session_state_key='chat_history'):

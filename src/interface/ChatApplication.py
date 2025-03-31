@@ -1,37 +1,43 @@
 import streamlit as st
 
-from src.ChatHistoryManager import ChatHistoryManager
-from src.ChatRenderer import ChatRenderer
-from src.GeminiHelper import GeminiHelper
-from src.InputCleaner import InputCleaner
-from src.PdfVectorHelper import PdfVectorHelper
-from src.WikiHelper import WikiHelper
+from src.interface.chat.ChatHistoryManager import ChatHistoryManager
+from src.interface.chat.ChatRenderer import ChatRenderer
+from src.promptConfig.GeminiHelper import GeminiHelper
+from src.interface.chat.InputCleaner import InputCleaner
+from src.knowledgeBase.PdfVectorHelper import PdfVectorHelper
+from src.knowledgeBase.WebVectorHelper import WebVectorHelper
+from src.knowledgeBase.WikiHelper import WikiHelper
 
 
 class ChatApplication:
     def __init__(self):
         self.chat_manager = ChatHistoryManager()
         self.pdf_vector_helper = PdfVectorHelper()
+        self.web_vector_helper = WebVectorHelper()
         self.gemini_helper = GeminiHelper()
         self.cleaner = InputCleaner()
         self.wiki_helper = WikiHelper()
 
-
     def render_clear_chat_button(self):
-        """Render button to clear chat history and vector store."""
-        if st.button("Clear Chat History and Uploaded PDFs"):
+        """Render button to clear chat history and vector stores."""
+        if st.button("Clear Chat History and Uploaded Content"):
             # Clear chat history
             self.chat_manager.clear_chat_history()
 
-            # Clear vector store
+            # Clear vector stores
             self.pdf_vector_helper.clear_vector_store(True)
+            self.web_vector_helper.clear_vector_store(True)
 
             # Reset input
             st.session_state.input_holder = ''
 
-            # Clear the file uploader state
+            # Clear the uploaded content states
             if 'uploaded_files' in st.session_state:
                 del st.session_state['uploaded_files']
+
+            st.session_state.web_urls = []
+            st.session_state.hasNoPdf = True
+            st.session_state.hasNoWeb = True
 
             # Rerun to refresh the UI
             st.rerun()
@@ -45,39 +51,55 @@ class ChatApplication:
             self.chat_manager.render_chat_history()
 
             # Determine response generation method based on toggles
-
             if st.session_state.wikipedia_toggle:
                 # Wikipedia-based response
                 st.toast("Your questions will be answered using Wikipedia.", icon="🌐")
                 response = self.wiki_helper.search_wikipedia(input_text)
                 emoji = "🌐AI"
 
-            elif st.session_state.internet_toggle:
-                # Internet-based response
-                st.toast("Your questions will be answered using the internet.", icon="🛜")
-                response = self.gemini_helper.get_gemini_response(
-                    question=clean_input,
-                    chat_history=self.chat_manager.get_chat_history()
-                )
-                emoji = "🛜AI"
+            elif st.session_state.web_toggle and not st.session_state.hasNoWeb:
+                # Web-based RAG response
+                st.toast("Your questions will be answered based on the web page content.", icon="📄")
+                # Get related chunks from the web vector store
+                web_docs = self.web_vector_helper.get_relevant_documents(clean_input)
+
+                if web_docs:
+                    # Create the conversational chain
+                    chain = self.gemini_helper.create_rag_chain()
+                    response = chain.invoke({
+                        "context": web_docs,
+                        "question": clean_input,
+                        "chat_history": self.chat_manager.get_chat_history()
+                    })
+                    emoji = "📄AI"
+                else:
+                    # Fallback to internet response if no relevant web_docs found
+                    st.warning("No relevant web content found. Using internet-based response.")
+                    response = self.gemini_helper.get_gemini_response(
+                        question=clean_input,
+                        chat_history=self.chat_manager.get_chat_history()
+                    )
+                    emoji = "🛜AI"
+                    st.warning("No relevant web content found. Using internet-based response.")
 
             elif st.session_state.pdfs_toggle and not st.session_state.hasNoPdf:
                 # PDF-based RAG response
                 st.toast("Your questions will be answered based on the PDFs.", icon="📂")
                 # Get related chunks from the vector store
-                docs = self.pdf_vector_helper.get_relevant_documents(clean_input)
+                pdf_docs = self.pdf_vector_helper.get_relevant_documents(clean_input)
 
-                if docs:
+                if pdf_docs:
                     # Create the conversational chain
                     chain = self.gemini_helper.create_rag_chain()
                     response = chain.invoke({
-                        "context": docs,
+                        "context": pdf_docs,
                         "question": clean_input,
                         "chat_history": self.chat_manager.get_chat_history()
                     })
                     emoji = "📂AI"
                 else:
-                    # Fallback to internet response if no relevant docs found
+                    # Fallback to internet response if no relevant pdf_docs found
+                    st.warning("No relevant PDF context found. Using internet-based response.")
                     response = self.gemini_helper.get_gemini_response(
                         question=clean_input,
                         chat_history=self.chat_manager.get_chat_history()
@@ -93,7 +115,6 @@ class ChatApplication:
                     chat_history=self.chat_manager.get_chat_history()
                 )
                 emoji = "🛜AI"
-                st.session_state.internet_toggle = True
 
             # Add AI message to chat history
             self.chat_manager.add_message(emoji, response)
@@ -112,21 +133,23 @@ class ChatApplication:
             key="input",
             on_change=self._handle_input_submission
         )
-        col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
+        col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
 
         with col1:
-            st.toggle("🛜 Use internet",
+            st.toggle("🛜 Internet",
                       key="internet_toggle",
-                      value=st.session_state.hasNoPdf,
-                      disabled=st.session_state.hasNoPdf)
+                      value=True)
         with col2:
-            st.toggle("📃 Use PDFs",
+            st.toggle("📃 PDFs",
                       key="pdfs_toggle",
-                      value=not st.session_state.hasNoPdf,
-                      disabled=st.session_state.hasNoPdf)
+                      value=False)
         with col3:
-            st.toggle("🌐 Use Wikipedia(beta)", key="wikipedia_toggle")
-
+            st.toggle("🌍 Web",
+                      key="web_toggle",
+                      value=False)
+        with col4:
+            st.toggle("🌐 Wikipedia(beta)", key="wikipedia_toggle",
+                      value=False)
 
     @staticmethod
     def _handle_input_submission():

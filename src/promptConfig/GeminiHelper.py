@@ -15,7 +15,7 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 
 class GeminiHelper:
-    def __init__(self, model_name='gemini-2.0-flash'):
+    def __init__(self, model_name='gemini-2.0-flash', temperature=0.5):
         """
         Initialize the GeminiHelper with a specific model.
 
@@ -29,6 +29,7 @@ class GeminiHelper:
             convert_system_message_to_human=True
         )
         self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        self.temperature = temperature
 
     def create_rag_chain(self):
         """
@@ -37,25 +38,31 @@ class GeminiHelper:
         Returns:
             A LangChain RAG chain for question-answering
         """
-        # Define the prompt template with clear instructions on using context
-        prompt_template = ChatPromptTemplate.from_template(
-            """You are an AI assistant that provides precise and accurate answers. 
-               Follow these guidelines carefully:
-               1. If the context provides relevant information, use it to form your answer.
-               2. Always be clear about the source of your information:
-                  - If using context, mention "Based on the provided documents:"
-                  - If using general knowledge, mention "Based on my general knowledge:"
-               3. If the context does not contain sufficient information to answer the question, 
-                  clearly state this and offer to help find more information.
-               4. Answer in the same language as the question.
-               5. Be concise but comprehensive.
 
-               Chat History: \n {chat_history} \n
-               Context: \n {context} \n
-               Question: \n {question} \n
+        prompt_template = ChatPromptTemplate.from_template("""You are an AI assistant that provides precise and accurate answers.
+            Always answer in the same language as the question.
+            If asked in Portuguese, answer in Portuguese.
 
-               Answer:
-           """)
+            Follow these guidelines carefully:
+            1. If the context provides relevant information, use it to form your answer.
+            2. Always be clear about the source of your information:
+               - If using context, mention "Based on the provided documents:"
+               - If using general knowledge, mention "Based on my general knowledge:"
+            3. If the context does not contain sufficient information to answer the question, 
+               clearly state this and offer to help find more information.
+            4. Answer in the same language as the question.
+            5. Be concise but comprehensive.
+            6. If the question is not clear, ask for clarification.
+            7. Do not correct any grammar or spelling mistakes, even if they are minor.
+            8. Keep your answers short and precise.
+
+            Chat History: \n {chat_history} \n
+            Context: \n {context} \n
+            Question: \n {question} \n
+
+            Answer:
+            """
+        )
 
         # Create the RAG chain
         rag_chain = (
@@ -91,11 +98,31 @@ class GeminiHelper:
             genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
             # Create a generative model
-            model = genai.GenerativeModel('gemini-2.0-flash')
+            model = genai.GenerativeModel('gemini-2.0-flash',generation_config={"temperature": self.temperature})
 
             # Construct a comprehensive prompt that includes context, chat history, and question
             full_query_parts = []
 
+            template = (
+                """You are an AI assistant that provides precise and accurate answers.
+                Always answer in the same language as the question.
+                If asked in Portuguese, answer in Portuguese.
+                Follow these guidelines carefully:
+                1. If the context provides relevant information, use it to form your answer.
+                2. Always be clear about the source of your information:
+                  - If using context, mention "Based on the provided documents:"
+                  - If using general knowledge, mention "Based on my general knowledge:"
+                3. If the context does not contain sufficient information to answer the question, 
+                  clearly state this and offer to help find more information.
+                4. Answer in the same language as the question.
+                5. Be concise but comprehensive.
+                6. If the question is not clear, ask for clarification.
+                7. Do not correct any grammar or spelling mistakes, even if they are minor.
+                8. Keep your answers short and precise.
+                """
+            )
+
+            full_query_parts.append(template)
             # Add context if provided
             if context:
                 full_query_parts.append(f"Context: {context}")
@@ -104,6 +131,7 @@ class GeminiHelper:
             if chat_history:
                 # Safely handle different chat history formats
                 if isinstance(chat_history, list):
+                    print("chat_history is list")
                     try:
                         # Try to extract text from dictionary-style chat history
                         history_str = "\n".join([
@@ -116,6 +144,7 @@ class GeminiHelper:
 
                     full_query_parts.append(f"Previous Conversation:\n{history_str}")
                 elif isinstance(chat_history, str):
+                    print("chat_history is string")
                     # If chat_history is already a string
                     full_query_parts.append(f"Previous Conversation:\n{chat_history}")
 

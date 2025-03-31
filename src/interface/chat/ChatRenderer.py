@@ -53,7 +53,6 @@ class ChatRenderer:
                     soft-wrap: break-word;
                 ">
                     <strong>{role}:</strong> {text}
-                </div>
                 """, unsafe_allow_html=True)
 
     @staticmethod
@@ -87,7 +86,6 @@ class ChatRenderer:
             return f"""
             <div style="{'; '.join(f'{k}: {v}' for k, v in message_style.items())}">
                 <strong>{role}:</strong> {current_text}
-            </div>
             """
 
         # Simulate typing

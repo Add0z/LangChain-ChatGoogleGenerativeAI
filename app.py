@@ -1,4 +1,4 @@
-from src.Interface import main
+from src.interface.Interface import main
 
 if __name__ == "__main__":
     main()
